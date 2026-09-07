@@ -314,6 +314,18 @@
     return `${h}j ${m}m`;
   }
 
+  function minutesFromTime(t){
+    if(!t) return 0;
+    const parts = String(t).split(':').map(Number);
+    if(parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return 0;
+    return parts[0]*60 + parts[1];
+  }
+
+  function entrySortKey(e){
+    const dateMs = e._date ? e._date.getTime() : 0;
+    return dateMs + minutesFromTime(e['Jam Mulai']) * 60000;
+  }
+
   function computeMinutes(start, end){
     if(!start || !end) return 0;
     const [sh, sm] = start.split(':').map(Number);
@@ -391,7 +403,7 @@
       if(e._date < monday || e._date > sunday) return false;
       if(nameFilter && !(e.Nama||'').toLowerCase().includes(nameFilter)) return false;
       return true;
-    }).sort((a,b) => b._date - a._date);
+    }).sort((a,b) => entrySortKey(b) - entrySortKey(a));
 
     let totalMins = 0;
     weekEntries.forEach(e => totalMins += computeMinutes(e['Jam Mulai'], e['Jam Selesai']));

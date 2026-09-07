@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timesheet · Multimedia UNAI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #17181C;
+    --panel: #1D2027;
+    --card: #23262E;
+    --card-hover: #282C35;
+    --border: #33373F;
+    --border-soft: #2A2E36;
+    --text: #EDEEF1;
+    --text-secondary: #9BA1AC;
+    --text-muted: #6B7280;
+    --accent: #D89843;
+    --accent-dim: #4A3A24;
+    --accent-text: #F3C888;
+    --ok: #5EBF9A;
+    --danger: #D96A5A;
+    --radius: 10px;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  h1,h2,h3,label,.mono{ font-family: 'Space Grotesk', sans-serif; }
+  .timecode{ font-family: 'JetBrains Mono', monospace; }
+
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  /* HEADER */
+  header{
+    display:flex; align-items:center; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
+    padding-bottom: 22px; border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 24px;
+  }
+  .brand{ display:flex; align-items:center; gap: 12px; }
+  .brand-mark{
+    width: 38px; height: 38px; border-radius: 8px;
+    background: var(--accent-dim); border: 1px solid var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    position: relative; flex-shrink:0;
+  }
+  .brand-mark::before{
+    content:''; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .brand-text h1{ font-size: 18px; font-weight: 600; margin:0; letter-spacing: 0.2px;}
+  .brand-text p{ font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0; }
+
+  .readout{
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 18px;
+    text-align: right; min-width: 160px;
+  }
+  .readout .label{ font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .readout .value{ font-size: 22px; font-weight: 500; color: var(--accent-text); margin-top: 2px; }
+
+  /* WEEK SCRUBBER */
+  .scrubber{
+    display:flex; align-items:center; gap: 14px; margin-bottom: 26px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 14px;
+  }
+  .scrubber button{
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); width: 32px; height: 32px; border-radius: 8px;
+    cursor:pointer; font-size: 16px; display:flex; align-items:center; justify-content:center;
+    transition: background .15s;
+  }
+  .scrubber button:hover{ background: var(--card-hover); }
+  .scrubber .range{ flex:1; font-size: 14px; color: var(--text-secondary); }
+  .scrubber .range strong{ color: var(--text); font-weight: 500; }
+  .days{ display:flex; gap: 4px; }
+  .day-chip{
+    width: 34px; height: 34px; border-radius: 7px; display:flex; align-items:center; justify-content:center;
+    font-size: 11px; color: var(--text-muted); border: 1px solid transparent; background: transparent;
+  }
+  .day-chip.today{ border-color: var(--accent); color: var(--accent-text); }
+  .day-chip.has-entry{ background: var(--accent-dim); color: var(--accent-text); }
+
+  /* LAYOUT */
+  .grid{ display:grid; grid-template-columns: 380px 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 860px){ .grid{ grid-template-columns: 1fr; } }
+
+  .panel-title{
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-muted); margin: 0 0 14px;
+  }
+
+  .card{
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px;
+  }
+
+  .field{ margin-bottom: 16px; }
+  .field label{ display:block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
+  .field .hint{ font-size: 11.5px; color: var(--text-muted); margin-top: 5px; }
+  input, select, textarea{
+    width: 100%; background: var(--card); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 12px;
+    font-family: 'Inter', sans-serif; font-size: 14px; outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus{ border-color: var(--accent); }
+  textarea{ resize: vertical; min-height: 72px; }
+  .row-2{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .duration-preview{
+    display:flex; align-items:center; justify-content: space-between;
+    background: var(--card); border: 1px dashed var(--border);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 18px;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .duration-preview .val{ color: var(--accent-text); font-weight: 500; }
+
+  button.submit{
+    width: 100%; background: var(--accent); border: none; color: #241A0C;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14.5px;
+    padding: 12px; border-radius: 8px; cursor: pointer; transition: filter .15s, opacity .15s;
+  }
+  button.submit:hover{ filter: brightness(1.08); }
+  button.submit:disabled{ opacity: 0.55; cursor: default; }
+
+  .status-msg{ font-size: 13px; margin-top: 12px; text-align:center; min-height: 18px; }
+  .status-msg.ok{ color: var(--ok); }
+  .status-msg.err{ color: var(--danger); }
+
+  /* LOG TABLE */
+  .log-header{ display:flex; align-items:center; justify-content: space-between; margin-bottom: 14px; }
+  .log-header input{ max-width: 200px; }
+  table{ width:100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th{
+    text-align:left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); font-weight: 500; padding: 0 10px 10px; border-bottom: 1px solid var(--border-soft);
+  }
+  tbody td{ padding: 12px 10px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
+  tbody tr:last-child td{ border-bottom: none; }
+  tbody tr:hover{ background: var(--card); }
+  td.jenis{ color: var(--accent-text); }
+  td.jam{ font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--text-secondary); white-space: nowrap; }
+  td.desc{ color: var(--text-secondary); font-size: 13px; max-width: 260px; }
+  .empty-state{ padding: 40px 10px; text-align:center; color: var(--text-muted); font-size: 13.5px; }
+  .empty-state i{ display:block; font-size: 13px; margin-top: 4px; }
+
+  .config-banner{
+    background: var(--accent-dim); border: 1px solid var(--accent);
+    color: var(--accent-text); border-radius: 10px; padding: 12px 16px;
+    font-size: 13px; margin-bottom: 20px; line-height: 1.6;
+  }
+  .config-banner code{ background: rgba(0,0,0,0.25); padding: 1px 6px; border-radius: 4px; }
+
+  ::placeholder{ color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-text">
+        <h1>Multimedia UNAI</h1>
+        <p>Timesheet pekerjaan mingguan</p>
+      </div>
+    </div>
+    <div class="readout">
+      <div class="label">Total jam minggu ini</div>
+      <div class="value timecode" id="weekTotal">0j 0m</div>
+    </div>
+  </header>
+
+  <div id="configBanner" class="config-banner" style="display:none;">
+    Belum terhubung ke Google Sheet. Buka <code>index.html</code>, cari <code>https://script.google.com/a/macros/unai.edu/s/AKfycbzHdyKO4McE_jfakJi6pOmEmXE__aMvybbriO_V1ZEoq9TEJUiXebqO_p_oLMsQgUgb/exec</code> di bagian script, lalu isi dengan URL Web App Apps Script kamu. Lihat langkah setup yang saya kirimkan di chat.
+  </div>
+
+  <div class="scrubber">
+    <button id="prevWeek" aria-label="Minggu sebelumnya">‹</button>
+    <div class="range">Minggu <strong id="weekRange">-</strong></div>
+    <div class="days" id="dayChips"></div>
+    <button id="nextWeek" aria-label="Minggu berikutnya">›</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <p class="panel-title">Isi laporan kerja</p>
+      <form id="timesheetForm">
+        <div class="field">
+          <label for="nama">Nama</label>
+          <input type="text" id="nama" name="nama" placeholder="Nama lengkap" required>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label for="divisi">Divisi</label>
+            <select id="divisi" name="divisi" required>
+              <option value="" disabled selected>Pilih divisi</option>
+              <option>Videografi</option>
+              <option>Fotografi</option>
+              <option>Desain Grafis</option>
+              <option>Editing</option>
+              <option>Broadcast / Live</option>
+              <option>Media Sosial</option>
+              <option>Lainnya</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="tanggal">Tanggal</label>
+            <input type="date" id="tanggal" name="tanggal" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="jenis">Jenis pekerjaan</label>
+          <input type="text" id="jenis" name="jenis" list="jenisSaran" placeholder="Contoh: Editing video, Shooting acara" required>
+          <datalist id="jenisSaran">
+            <option value="Editing video">
+            <option value="Shooting foto">
+            <option value="Shooting video">
+            <option value="Desain grafis">
+            <option value="Live streaming">
+            <option value="Rapat produksi">
+            <option value="Rendering & export">
+          </datalist>
+          <p class="hint">Ketik bebas sesuai jenis pekerjaan yang dikerjakan.</p>
+        </div>
+
+        <div class="field">
+          <label for="deskripsi">Deskripsi pekerjaan</label>
+          <textarea id="deskripsi" name="deskripsi" placeholder="Ringkasan singkat pekerjaan yang dilakukan" required></textarea>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label for="jamMulai">Jam mulai</label>
+            <input type="time" id="jamMulai" name="jamMulai" required>
+          </div>
+          <div class="field">
+            <label for="jamSelesai">Jam selesai</label>
+            <input type="time" id="jamSelesai" name="jamSelesai" required>
+          </div>
+        </div>
+
+        <div class="duration-preview">
+          <span>Durasi kerja</span>
+          <span class="val timecode" id="durationPreview">0j 0m</span>
+        </div>
+
+        <div class="field">
+          <label for="project">Project / lokasi <span style="color:var(--text-muted); font-weight:400;">(opsional)</span></label>
+          <input type="text" id="project" name="project" placeholder="Contoh: Wisuda 2026, Studio A">
+        </div>
+
+        <button type="submit" class="submit" id="submitBtn">Simpan laporan</button>
+        <div class="status-msg" id="statusMsg"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="log-header">
+        <p class="panel-title" style="margin:0;">Laporan minggu ini</p>
+        <input type="text" id="filterNama" placeholder="Filter nama...">
+      </div>
+      <div id="logTableWrap">
+        <div class="empty-state">Memuat data<i>Menghubungkan ke Google Sheet...</i></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // === KONFIGURASI ===
+  // Ganti nilai di bawah dengan URL Web App Google Apps Script kamu (lihat panduan setup).
+  const SCRIPT_URL = "PASTE_URL_APPS_SCRIPT_DI_SINI";
+
+  const els = {
+    form: document.getElementById('timesheetForm'),
+    submitBtn: document.getElementById('submitBtn'),
+    statusMsg: document.getElementById('statusMsg'),
+    jamMulai: document.getElementById('jamMulai'),
+    jamSelesai: document.getElementById('jamSelesai'),
+    durationPreview: document.getElementById('durationPreview'),
+    weekTotal: document.getElementById('weekTotal'),
+    weekRange: document.getElementById('weekRange'),
+    dayChips: document.getElementById('dayChips'),
+    prevWeek: document.getElementById('prevWeek'),
+    nextWeek: document.getElementById('nextWeek'),
+    logTableWrap: document.getElementById('logTableWrap'),
+    filterNama: document.getElementById('filterNama'),
+    configBanner: document.getElementById('configBanner'),
+    tanggal: document.getElementById('tanggal'),
+  };
+
+  let allEntries = [];
+  let weekAnchor = new Date();
+
+  function fmtDurationMinutes(mins){
+    if (isNaN(mins) || mins < 0) mins = 0;
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    return `${h}j ${m}m`;
+  }
+
+  function computeMinutes(start, end){
+    if(!start || !end) return 0;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    let mins = (eh*60+em) - (sh*60+sm);
+    if (mins < 0) mins += 24*60;
+    return mins;
+  }
+
+  function updateDurationPreview(){
+    const mins = computeMinutes(els.jamMulai.value, els.jamSelesai.value);
+    els.durationPreview.textContent = fmtDurationMinutes(mins);
+  }
+  els.jamMulai.addEventListener('input', updateDurationPreview);
+  els.jamSelesai.addEventListener('input', updateDurationPreview);
+
+  els.tanggal.valueAsDate = new Date();
+
+  function getMonday(d){
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    date.setDate(diff);
+    date.setHours(0,0,0,0);
+    return date;
+  }
+
+  function fmtShortDate(d){
+    return d.toLocaleDateString('id-ID', { day:'numeric', month:'short' });
+  }
+
+  const dayLabels = ['Sen','Sel','Rab','Kam','Jum','Sab','Min'];
+
+  function renderWeekChrome(){
+    const monday = getMonday(weekAnchor);
+    const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+    els.weekRange.textContent = `${fmtShortDate(monday)} – ${fmtShortDate(sunday)} ${sunday.getFullYear()}`;
+
+    els.dayChips.innerHTML = '';
+    const today = new Date(); today.setHours(0,0,0,0);
+    const weekDates = [];
+    for(let i=0;i<7;i++){
+      const d = new Date(monday); d.setDate(monday.getDate()+i);
+      weekDates.push(d);
+      const chip = document.createElement('div');
+      chip.className = 'day-chip';
+      if(d.getTime() === today.getTime()) chip.classList.add('today');
+      const hasEntry = allEntries.some(e => e._date && sameDay(e._date, d));
+      if(hasEntry) chip.classList.add('has-entry');
+      chip.textContent = dayLabels[i];
+      chip.title = fmtShortDate(d);
+      els.dayChips.appendChild(chip);
+    }
+    return { monday, sunday };
+  }
+
+  function sameDay(a,b){
+    return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+
+  function parseEntryDate(val){
+    if(!val) return null;
+    const d = new Date(val);
+    if(isNaN(d)) return null;
+    d.setHours(0,0,0,0);
+    return d;
+  }
+
+  function renderLog(){
+    const { monday, sunday } = renderWeekChrome();
+    const nameFilter = els.filterNama.value.trim().toLowerCase();
+
+    const weekEntries = allEntries.filter(e => {
+      if(!e._date) return false;
+      if(e._date < monday || e._date > sunday) return false;
+      if(nameFilter && !(e.Nama||'').toLowerCase().includes(nameFilter)) return false;
+      return true;
+    }).sort((a,b) => b._date - a._date);
+
+    let totalMins = 0;
+    weekEntries.forEach(e => totalMins += computeMinutes(e['Jam Mulai'], e['Jam Selesai']));
+    els.weekTotal.textContent = fmtDurationMinutes(totalMins);
+
+    if(weekEntries.length === 0){
+      els.logTableWrap.innerHTML = `<div class="empty-state">Belum ada laporan di minggu ini<i>Isi form di sebelah kiri untuk menambahkan.</i></div>`;
+      return;
+    }
+
+    let html = `<table><thead><tr>
+      <th>Tanggal</th><th>Nama</th><th>Jenis pekerjaan</th><th>Deskripsi</th><th>Jam</th>
+    </tr></thead><tbody>`;
+    weekEntries.forEach(e => {
+      const mins = computeMinutes(e['Jam Mulai'], e['Jam Selesai']);
+      html += `<tr>
+        <td>${fmtShortDate(e._date)}</td>
+        <td>${escapeHtml(e.Nama||'')}</td>
+        <td class="jenis">${escapeHtml(e['Jenis Pekerjaan']||'')}</td>
+        <td class="desc">${escapeHtml(e.Deskripsi||'')}</td>
+        <td class="jam">${e['Jam Mulai']||''}–${e['Jam Selesai']||''} · ${fmtDurationMinutes(mins)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    els.logTableWrap.innerHTML = html;
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  els.prevWeek.addEventListener('click', () => {
+    weekAnchor.setDate(weekAnchor.getDate()-7);
+    weekAnchor = new Date(weekAnchor);
+    renderLog();
+  });
+  els.nextWeek.addEventListener('click', () => {
+    weekAnchor.setDate(weekAnchor.getDate()+7);
+    weekAnchor = new Date(weekAnchor);
+    renderLog();
+  });
+  els.filterNama.addEventListener('input', renderLog);
+
+  async function loadEntries(){
+    if(!isConfigured()) return;
+    try{
+      const res = await fetch(SCRIPT_URL);
+      const data = await res.json();
+      allEntries = (Array.isArray(data) ? data : []).map(e => ({...e, _date: parseEntryDate(e['Tanggal'])}));
+      renderLog();
+    }catch(err){
+      els.logTableWrap.innerHTML = `<div class="empty-state">Gagal memuat data<i>${escapeHtml(err.message)}</i></div>`;
+    }
+  }
+
+  function isConfigured(){
+    return SCRIPT_URL && !SCRIPT_URL.startsWith('PASTE_');
+  }
+
+  if(!isConfigured()){
+    els.configBanner.style.display = 'block';
+    els.logTableWrap.innerHTML = `<div class="empty-state">Belum terhubung ke Google Sheet<i>Isi SCRIPT_URL di file index.html.</i></div>`;
+    renderWeekChrome();
+  }
+
+  els.form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    if(!isConfigured()){
+      setStatus('Sambungkan ke Google Sheet dulu (isi SCRIPT_URL).', 'err');
+      return;
+    }
+    const mins = computeMinutes(els.jamMulai.value, els.jamSelesai.value);
+    const payload = {
+      nama: document.getElementById('nama').value.trim(),
+      divisi: document.getElementById('divisi').value,
+      tanggal: document.getElementById('tanggal').value,
+      jenisPekerjaan: document.getElementById('jenis').value.trim(),
+      deskripsi: document.getElementById('deskripsi').value.trim(),
+      jamMulai: els.jamMulai.value,
+      jamSelesai: els.jamSelesai.value,
+      totalJam: fmtDurationMinutes(mins),
+      project: document.getElementById('project').value.trim(),
+    };
+
+    els.submitBtn.disabled = true;
+    els.submitBtn.textContent = 'Menyimpan...';
+    setStatus('', '');
+
+    try{
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if(result.status === 'success'){
+        setStatus('Laporan tersimpan ke Google Sheet.', 'ok');
+        els.form.reset();
+        els.tanggal.valueAsDate = new Date();
+        updateDurationPreview();
+        await loadEntries();
+      }else{
+        throw new Error(result.message || 'Gagal menyimpan');
+      }
+    }catch(err){
+      setStatus('Gagal menyimpan: ' + err.message, 'err');
+    }finally{
+      els.submitBtn.disabled = false;
+      els.submitBtn.textContent = 'Simpan laporan';
+    }
+  });
+
+  function setStatus(msg, type){
+    els.statusMsg.textContent = msg;
+    els.statusMsg.className = 'status-msg' + (type ? ' ' + type : '');
+  }
+
+  renderWeekChrome();
+  loadEntries();
+</script>
+</body>
+</html>
